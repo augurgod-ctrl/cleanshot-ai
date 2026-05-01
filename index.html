@@ -1,1 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CleanShot AI</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+      padding: 40px;
+    }
+    .box {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: auto;
+    }
+    button {
+      padding: 10px 20px;
+      background: #22c55e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      font-size: 16px;
+    }
+    input {
+      margin: 10px 0;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
 
+  <h1>✨ CleanShot AI</h1>
+  <p>Remove watermarks with AI</p>
+
+  <div class="box">
+    <input type="file" id="imageInput" />
+    <br>
+    <button onclick="upload()">Clean Image</button>
+    <p id="status"></p>
+    <img id="result" />
+  </div>
+
+  <script>
+    const API_URL = "https://cleanshot-aibackend.onrender.com/clean"; // 👈 TU BACKEND
+
+    async function upload() {
+      const file = document.getElementById("imageInput").files[0];
+      if (!file) return alert("Sube una imagen");
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        document.getElementById("status").innerText = "Procesando...";
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              image: reader.result
+            })
+          });
+
+          const data = await res.json();
+
+          console.log(data);
+
+          if (data && data.urls && data.urls.get) {
+            checkResult(data.urls.get);
+          } else {
+            document.getElementById("status").innerText = "Error en la IA";
+          }
+
+        } catch (err) {
+          document.getElementById("status").innerText = "Error de conexión";
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    async function checkResult(url) {
+      let done = false;
+
+      while (!done) {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === "succeeded") {
+          document.getElementById("result").src = data.output[0];
+          document.getElementById("status").innerText = "Listo ✅";
+          done = true;
+        } else if (data.status === "failed") {
+          document.getElementById("status").innerText = "Falló ❌";
+          done = true;
+        } else {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
